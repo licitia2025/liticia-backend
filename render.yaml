@@ -1,7 +1,7 @@
 services:
   # Backend API
   - type: web
-    name: liticia-backend
+    name: liticia-backend-api
     env: python
     region: frankfurt
     plan: free
@@ -17,54 +17,71 @@ services:
         sync: false
       - key: OPENAI_API_KEY
         sync: false
+      - key: SECRET_KEY
+        sync: false
       - key: ENVIRONMENT
         value: production
-      - key: MIN_PRESUPUESTO_ANALISIS_IA
-        value: 50000
-      - key: SCRAPING_INTERVALO_HORAS
-        value: 3
-      - key: ANALISIS_IA_INTERVALO_HORAS
-        value: 6
 
-  # Celery Worker
-  - type: worker
-    name: liticia-worker
+  # Cron Job 1: Horario Caliente (L-V 9:00-14:30, cada 30 min)
+  - type: cron
+    name: liticia-scraper-hot
     env: python
     region: frankfurt
-    plan: free
+    plan: starter
+    schedule: "*/30 9-14 * * 1-5"
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A app.core.celery_app worker --loglevel=info"
+    startCommand: "python3.11 scraper_auto.py"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: DATABASE_URL
         sync: false
-      - key: REDIS_URL
-        sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: ENVIRONMENT
-        value: production
-      - key: MIN_PRESUPUESTO_ANALISIS_IA
-        value: 50000
+      - key: SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
 
-  # Celery Beat (Scheduler)
-  - type: worker
-    name: liticia-scheduler
+  # Cron Job 2: Horario Templado (L-V cada 2 horas)
+  - type: cron
+    name: liticia-scraper-warm
     env: python
     region: frankfurt
-    plan: free
+    plan: starter
+    schedule: "0 */2 * * 1-5"
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "celery -A app.core.celery_app beat --loglevel=info"
+    startCommand: "python3.11 scraper_auto.py"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
       - key: DATABASE_URL
         sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        sync: false
       - key: REDIS_URL
+        sync: false
+
+  # Cron Job 3: Horario Frío (S-D 10:00 y 22:00)
+  - type: cron
+    name: liticia-scraper-cold
+    env: python
+    region: frankfurt
+    plan: starter
+    schedule: "0 10,22 * * 0,6"
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python3.11 scraper_auto.py"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DATABASE_URL
         sync: false
       - key: OPENAI_API_KEY
         sync: false
-      - key: ENVIRONMENT
-        value: production
+      - key: SECRET_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
 
