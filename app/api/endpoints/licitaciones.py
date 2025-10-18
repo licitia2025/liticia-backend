@@ -129,27 +129,20 @@ def get_licitacion(
     if not licitacion:
         raise HTTPException(status_code=404, detail="Licitación no encontrada")
     
+    # Parsear campos antes de la validación de Pydantic
+    # Convertir codigos_cpv de string a lista
+    if licitacion.codigos_cpv and isinstance(licitacion.codigos_cpv, str):
+        try:
+            licitacion.codigos_cpv = json.loads(licitacion.codigos_cpv)
+        except:
+            licitacion.codigos_cpv = []
+    
+    # Convertir duracion de int a string
+    if licitacion.duracion and isinstance(licitacion.duracion, int):
+        licitacion.duracion = str(licitacion.duracion)
+    
     # Convertir a schema
     detail = LicitacionDetail.model_validate(licitacion)
-    
-    # Parsear JSON fields
-    if licitacion.codigos_cpv:
-        try:
-            detail.codigos_cpv = json.loads(licitacion.codigos_cpv)
-        except:
-            detail.codigos_cpv = []
-    
-    if licitacion.stack_tecnologico:
-        # SQLAlchemy ya devuelve el JSON parseado
-        detail.stack_tecnologico = licitacion.stack_tecnologico if isinstance(licitacion.stack_tecnologico, dict) else {}
-    
-    if licitacion.conceptos_tic:
-        # SQLAlchemy ya devuelve el JSON parseado
-        detail.conceptos_tic = licitacion.conceptos_tic if isinstance(licitacion.conceptos_tic, list) else []
-    
-    if licitacion.resumen_tecnico:
-        # SQLAlchemy ya devuelve el JSON parseado
-        detail.resumen_tecnico = licitacion.resumen_tecnico if isinstance(licitacion.resumen_tecnico, dict) else {}
     
     return detail
 
