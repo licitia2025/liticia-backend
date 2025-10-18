@@ -18,8 +18,13 @@ def get_engine():
     """Obtener engine de SQLAlchemy (lazy initialization)."""
     global _engine
     if _engine is None:
+        # Convertir URL de postgresql:// a postgresql+psycopg:// para psycopg3
+        db_url = settings.DATABASE_URL
+        if db_url.startswith('postgresql://'):
+            db_url = db_url.replace('postgresql://', 'postgresql+psycopg://', 1)
+        
         _engine = create_engine(
-            settings.DATABASE_URL,
+            db_url,
             pool_size=settings.DATABASE_POOL_SIZE,
             max_overflow=settings.DATABASE_MAX_OVERFLOW,
             pool_pre_ping=True,  # Verificar conexiones antes de usarlas
