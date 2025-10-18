@@ -14,6 +14,7 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
-        "service": "liticia-backend"
+        "service": "liticia-backend",
+        "version": "1.0.0"
     }
 
