@@ -2,7 +2,7 @@
 Schemas Pydantic para Licitaciones
 """
 from pydantic import BaseModel, Field
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 
@@ -116,7 +116,7 @@ class EstadisticasResponse(BaseModel):
     licitaciones_por_tipo: Dict[str, int]
     licitaciones_por_concepto: Dict[str, int]
     top_tecnologias: List[Dict[str, int]]
-    evolucion_mensual: List[Dict[str, any]]
+    evolucion_mensual: List[Dict[str, Any]]
 
 
 class TecnologiaResponse(BaseModel):
