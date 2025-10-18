@@ -50,11 +50,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # CORS
-    BACKEND_CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:5173",
-        "http://localhost:8000",
-    ]
+    BACKEND_CORS_ORIGINS: list[str] = ["*"]  # Permitir todos los orígenes para desarrollo
     
     # Rate Limiting
     RATE_LIMIT_PER_MINUTE: int = 100
