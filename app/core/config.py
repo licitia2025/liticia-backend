@@ -37,15 +37,15 @@ class Settings(BaseSettings):
     MIN_BUDGET_FOR_AI_ANALYSIS: int = 50000  # Solo analizar licitaciones >€50k con IA
     AI_CACHE_TTL_DAYS: int = 30  # Cachear análisis IA por 30 días
     
-    # DigitalOcean Spaces (S3-compatible)
-    SPACES_ENDPOINT: str
+    # DigitalOcean Spaces (S3-compatible) - Opcional para MVP
+    SPACES_ENDPOINT: Optional[str] = None
     SPACES_REGION: str = "fra1"
-    SPACES_KEY: str
-    SPACES_SECRET: str
+    SPACES_KEY: Optional[str] = None
+    SPACES_SECRET: Optional[str] = None
     SPACES_BUCKET: str = "liticia-docs"
     
     # Seguridad
-    SECRET_KEY: str
+    SECRET_KEY: str = "liticia-secret-key-change-in-production-12345678901234567890"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
