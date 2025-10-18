@@ -1,7 +1,7 @@
 """
 Modelos de base de datos para licitaciones.
 """
-from sqlalchemy import Column, Integer, String, Text, DECIMAL, TIMESTAMP, Boolean, ForeignKey, Table
+from sqlalchemy import Column, Integer, String, Text, DECIMAL, TIMESTAMP, Boolean, ForeignKey, Table, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
@@ -28,54 +28,99 @@ licitaciones_conceptos = Table(
 
 
 class Licitacion(Base):
-    """Modelo de Licitación."""
+    """Modelo de Licitación - Alineado con schemas."""
     __tablename__ = 'licitaciones'
     
+    # Campos principales
     id = Column(Integer, primary_key=True, index=True)
+    id_licitacion = Column(String(255), nullable=False, unique=True)  # ID externo de la fuente
     titulo = Column(Text, nullable=False)
-    descripcion = Column(Text, nullable=True)
-    organismo_id = Column(Integer, ForeignKey('organismos.id'), nullable=True)
-    presupuesto_base = Column(DECIMAL(12, 2), nullable=True, index=True)
+    expediente = Column(String(100), nullable=True)
+    estado = Column(String(50), nullable=True, index=True)
+    resumen = Column(Text, nullable=True)
+    
+    # Información del órgano de contratación
+    organo_contratacion = Column(String(500), nullable=True)
+    nif_organo = Column(String(20), nullable=True)
+    web_organo = Column(String(500), nullable=True)
+    email_organo = Column(String(255), nullable=True)
+    telefono_organo = Column(String(50), nullable=True)
+    ciudad_organo = Column(String(100), nullable=True)
+    codigo_postal_organo = Column(String(10), nullable=True)
+    
+    # Información del contrato
+    tipo_contrato = Column(String(100), nullable=True)
+    tipo_contrato_codigo = Column(String(10), nullable=True)
+    presupuesto_base = Column(DECIMAL(15, 2), nullable=True, index=True)
+    valor_estimado = Column(DECIMAL(15, 2), nullable=True)
+    
+    # Ubicación
+    lugar_ejecucion = Column(String(500), nullable=True)
+    codigo_nuts = Column(String(20), nullable=True)
+    
+    # CPV
+    codigos_cpv = Column(JSON, nullable=True)  # Lista de códigos CPV
+    
+    # Duración
+    duracion = Column(Integer, nullable=True)
+    duracion_unidad = Column(String(20), nullable=True)  # meses, días, años
+    
+    # Procedimiento
+    procedimiento_codigo = Column(String(10), nullable=True)
+    
+    # Financiación
+    financiacion_ue = Column(String(10), nullable=True)  # S/N
+    
+    # Fechas
     fecha_publicacion = Column(TIMESTAMP, nullable=True, index=True)
     fecha_vencimiento = Column(TIMESTAMP, nullable=True, index=True)
-    tipo_contrato = Column(String(50), nullable=True)
-    procedimiento = Column(String(100), nullable=True)
-    codigo_cpv = Column(String(20), nullable=True)
-    ubicacion_ccaa = Column(String(50), nullable=True, index=True)
-    ubicacion_provincia = Column(String(50), nullable=True)
-    ubicacion_municipio = Column(String(100), nullable=True)
-    estado = Column(String(20), nullable=True, index=True)  # activa, adjudicada, cancelada
-    url_fuente = Column(Text, nullable=True)
+    fecha_limite_presentacion = Column(TIMESTAMP, nullable=True)
+    hora_limite_presentacion = Column(String(10), nullable=True)
+    
+    # Adjudicación
+    resultado_codigo = Column(String(10), nullable=True)
+    fecha_adjudicacion = Column(TIMESTAMP, nullable=True)
+    adjudicatario = Column(String(500), nullable=True)
+    nif_adjudicatario = Column(String(20), nullable=True)
+    importe_adjudicacion = Column(DECIMAL(15, 2), nullable=True)
+    
+    # Análisis IA
+    conceptos_tic = Column(JSON, nullable=True)  # Lista de conceptos TIC detectados
+    stack_tecnologico = Column(JSON, nullable=True)  # Dict con categorías y tecnologías
+    resumen_tecnico = Column(JSON, nullable=True)  # Dict con análisis técnico
+    analizado_ia = Column(Boolean, default=False)
+    fecha_analisis_ia = Column(TIMESTAMP, nullable=True)
+    
+    # Metadatos
+    link = Column(Text, nullable=True)
     fuente = Column(String(100), nullable=True)  # PLACSP, Cataluña, etc.
     hash_contenido = Column(String(64), nullable=True, unique=True, index=True)
+    fecha_actualizacion = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
     
     # Relaciones
-    organismo = relationship("Organismo", back_populates="licitaciones")
     tecnologias = relationship("Tecnologia", secondary=licitaciones_tecnologias, back_populates="licitaciones")
     conceptos = relationship("ConceptoTIC", secondary=licitaciones_conceptos, back_populates="licitaciones")
     documentos = relationship("Documento", back_populates="licitacion", cascade="all, delete-orphan")
-    resumen_ia = relationship("ResumenIA", back_populates="licitacion", uselist=False, cascade="all, delete-orphan")
     adjudicaciones = relationship("Adjudicacion", back_populates="licitacion", cascade="all, delete-orphan")
+    resumen_ia = relationship("ResumenIA", back_populates="licitacion", uselist=False, cascade="all, delete-orphan")
 
 
 class Organismo(Base):
-    """Modelo de Organismo licitador."""
+    """Modelo de Organismo."""
     __tablename__ = 'organismos'
     
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(Text, nullable=False)
-    tipo = Column(String(50), nullable=True)  # ministerio, ayuntamiento, universidad, etc.
-    ccaa = Column(String(50), nullable=True)
-    provincia = Column(String(50), nullable=True)
-    url_perfil = Column(Text, nullable=True)
-    contacto_email = Column(String(255), nullable=True)
-    contacto_telefono = Column(String(50), nullable=True)
+    nombre = Column(String(500), nullable=False)
+    nif = Column(String(20), nullable=True, unique=True)
+    tipo = Column(String(100), nullable=True)  # Ministerio, Ayuntamiento, etc.
+    web = Column(String(500), nullable=True)
+    email = Column(String(255), nullable=True)
+    telefono = Column(String(50), nullable=True)
+    ciudad = Column(String(100), nullable=True)
+    codigo_postal = Column(String(10), nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
-    
-    # Relaciones
-    licitaciones = relationship("Licitacion", back_populates="organismo")
 
 
 class Tecnologia(Base):
@@ -83,9 +128,9 @@ class Tecnologia(Base):
     __tablename__ = 'tecnologias'
     
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(100), unique=True, nullable=False)
-    categoria = Column(String(50), nullable=True)  # lenguaje, framework, cloud, database, etc.
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    nombre = Column(String(100), nullable=False, unique=True)
+    categoria = Column(String(100), nullable=True)  # lenguaje, framework, base_datos, etc.
+    descripcion = Column(Text, nullable=True)
     
     # Relaciones
     licitaciones = relationship("Licitacion", secondary=licitaciones_tecnologias, back_populates="tecnologias")
@@ -96,28 +141,29 @@ class ConceptoTIC(Base):
     __tablename__ = 'conceptos_tic'
     
     id = Column(Integer, primary_key=True, index=True)
-    nombre = Column(String(100), unique=True, nullable=False)
+    nombre = Column(String(100), nullable=False, unique=True)
     descripcion = Column(Text, nullable=True)
-    created_at = Column(TIMESTAMP, server_default=func.now())
+    categoria = Column(String(100), nullable=True)
     
     # Relaciones
     licitaciones = relationship("Licitacion", secondary=licitaciones_conceptos, back_populates="conceptos")
 
 
 class Documento(Base):
-    """Modelo de Documento asociado a licitación."""
+    """Modelo de Documento adjunto a licitación."""
     __tablename__ = 'documentos'
     
     id = Column(Integer, primary_key=True, index=True)
     licitacion_id = Column(Integer, ForeignKey('licitaciones.id', ondelete='CASCADE'), nullable=False, index=True)
-    tipo = Column(String(50), nullable=True)  # pliego_tecnico, pliego_administrativo, anexo, etc.
-    nombre_archivo = Column(String(255), nullable=True)
+    nombre = Column(String(500), nullable=False)
+    tipo = Column(String(50), nullable=True)  # pliego, anexo, etc.
     url_descarga = Column(Text, nullable=True)
-    ruta_local = Column(Text, nullable=True)
+    url_almacenamiento = Column(Text, nullable=True)  # URL en S3/storage
     tamano_bytes = Column(Integer, nullable=True)
     hash_archivo = Column(String(64), nullable=True)
-    texto_extraido = Column(Text, nullable=True)
     procesado = Column(Boolean, default=False)
+    texto_extraido = Column(Text, nullable=True)
+    metadata_extra = Column(JSON, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     
     # Relaciones
@@ -130,10 +176,11 @@ class ResumenIA(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     licitacion_id = Column(Integer, ForeignKey('licitaciones.id', ondelete='CASCADE'), nullable=False, unique=True)
-    resumen_tecnico = Column(Text, nullable=True)
-    requisitos_principales = Column(Text, nullable=True)  # JSON array como texto
-    nivel_complejidad = Column(String(20), nullable=True)  # bajo, medio, alto
-    modelo_usado = Column(String(50), nullable=True)
+    resumen_ejecutivo = Column(Text, nullable=True)
+    requisitos_tecnicos = Column(JSON, nullable=True)
+    stack_recomendado = Column(JSON, nullable=True)
+    nivel_complejidad = Column(String(20), nullable=True)  # baja, media, alta
+    puntuacion_relevancia = Column(DECIMAL(3, 2), nullable=True)  # 0.00 - 1.00
     created_at = Column(TIMESTAMP, server_default=func.now())
     
     # Relaciones
@@ -141,15 +188,16 @@ class ResumenIA(Base):
 
 
 class Adjudicacion(Base):
-    """Modelo de Adjudicación (histórico)."""
+    """Modelo de Adjudicación."""
     __tablename__ = 'adjudicaciones'
     
     id = Column(Integer, primary_key=True, index=True)
-    licitacion_id = Column(Integer, ForeignKey('licitaciones.id'), nullable=True)
-    empresa_adjudicataria = Column(String(255), nullable=True)
-    precio_adjudicacion = Column(DECIMAL(12, 2), nullable=True)
-    porcentaje_baja = Column(DECIMAL(5, 2), nullable=True)
+    licitacion_id = Column(Integer, ForeignKey('licitaciones.id', ondelete='CASCADE'), nullable=False)
+    adjudicatario = Column(String(500), nullable=False)
+    nif_adjudicatario = Column(String(20), nullable=True)
+    importe = Column(DECIMAL(15, 2), nullable=True)
     fecha_adjudicacion = Column(TIMESTAMP, nullable=True)
+    observaciones = Column(Text, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     
     # Relaciones
@@ -161,12 +209,14 @@ class ScrapingLog(Base):
     __tablename__ = 'scraping_logs'
     
     id = Column(Integer, primary_key=True, index=True)
-    fuente = Column(String(100), nullable=True, index=True)
-    url = Column(Text, nullable=True)
-    estado = Column(String(20), nullable=True)  # success, error, partial
+    fuente = Column(String(100), nullable=False, index=True)
+    fecha_inicio = Column(TIMESTAMP, nullable=False)
+    fecha_fin = Column(TIMESTAMP, nullable=True)
+    estado = Column(String(20), nullable=False)  # success, error, partial
     licitaciones_nuevas = Column(Integer, default=0)
     licitaciones_actualizadas = Column(Integer, default=0)
-    errores = Column(Text, nullable=True)
-    tiempo_ejecucion = Column(Integer, nullable=True)  # segundos
+    errores = Column(Integer, default=0)
+    mensaje_error = Column(Text, nullable=True)
+    metadata_extra = Column(JSON, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now(), index=True)
 
