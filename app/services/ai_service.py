@@ -1,7 +1,7 @@
 """
-Servicio de análisis con IA usando OpenAI
+Servicio de análisis con IA usando OpenAI (versión con requests directos)
 """
-from openai import OpenAI
+import requests
 from app.core.config import settings
 from typing import Dict, List, Optional
 import logging
@@ -15,10 +15,11 @@ class AIService:
     """Servicio para análisis de licitaciones con IA"""
     
     def __init__(self):
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.api_key = settings.OPENAI_API_KEY
         self.model = settings.OPENAI_MODEL
         self.temperature = settings.OPENAI_TEMPERATURE
         self.max_tokens = settings.OPENAI_MAX_TOKENS
+        self.api_url = "https://api.openai.com/v1/chat/completions"
         self._cache = {}  # Cache simple en memoria
     
     def _get_cache_key(self, text: str, prompt_type: str) -> str:
@@ -28,7 +29,7 @@ class AIService:
     
     def _call_openai(self, system_prompt: str, user_prompt: str, cache_key: Optional[str] = None) -> Optional[str]:
         """
-        Llama a la API de OpenAI
+        Llama a la API de OpenAI usando requests directamente
         
         Args:
             system_prompt: Prompt del sistema
@@ -44,17 +45,38 @@ class AIService:
             return self._cache[cache_key]
         
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
+            headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": self.model,
+                "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=self.temperature,
-                max_tokens=self.max_tokens
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens
+            }
+            
+            response = requests.post(
+                self.api_url,
+                headers=headers,
+                json=payload,
+                timeout=60
             )
             
-            result = response.choices[0].message.content
+            if response.status_code != 200:
+                logger.error(f"Error en API de OpenAI: {response.status_code} - {response.text}")
+                return None
+            
+            result_data = response.json()
+            result = result_data['choices'][0]['message']['content']
+            
+            # Log de uso de tokens
+            usage = result_data.get('usage', {})
+            logger.info(f"Tokens usados - Input: {usage.get('prompt_tokens', 0)}, Output: {usage.get('completion_tokens', 0)}, Total: {usage.get('total_tokens', 0)}")
             
             # Guardar en caché
             if cache_key:
