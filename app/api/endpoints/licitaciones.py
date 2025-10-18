@@ -102,10 +102,8 @@ def list_licitaciones(
         
         # Parsear conceptos TIC si existen
         if lic.conceptos_tic:
-            try:
-                item.conceptos_tic = json.loads(lic.conceptos_tic)
-            except:
-                item.conceptos_tic = []
+            # SQLAlchemy ya devuelve el JSON parseado
+            item.conceptos_tic = lic.conceptos_tic if isinstance(lic.conceptos_tic, list) else []
         
         items.append(item)
     
@@ -142,22 +140,16 @@ def get_licitacion(
             detail.codigos_cpv = []
     
     if licitacion.stack_tecnologico:
-        try:
-            detail.stack_tecnologico = json.loads(licitacion.stack_tecnologico)
-        except:
-            detail.stack_tecnologico = {}
+        # SQLAlchemy ya devuelve el JSON parseado
+        detail.stack_tecnologico = licitacion.stack_tecnologico if isinstance(licitacion.stack_tecnologico, dict) else {}
     
     if licitacion.conceptos_tic:
-        try:
-            detail.conceptos_tic = json.loads(licitacion.conceptos_tic)
-        except:
-            detail.conceptos_tic = []
+        # SQLAlchemy ya devuelve el JSON parseado
+        detail.conceptos_tic = licitacion.conceptos_tic if isinstance(licitacion.conceptos_tic, list) else []
     
     if licitacion.resumen_tecnico:
-        try:
-            detail.resumen_tecnico = json.loads(licitacion.resumen_tecnico)
-        except:
-            detail.resumen_tecnico = {}
+        # SQLAlchemy ya devuelve el JSON parseado
+        detail.resumen_tecnico = licitacion.resumen_tecnico if isinstance(licitacion.resumen_tecnico, dict) else {}
     
     return detail
 
@@ -219,7 +211,8 @@ def get_estadisticas(
     
     for lic in conceptos_lics:
         try:
-            conceptos = json.loads(lic.conceptos_tic)
+            # SQLAlchemy ya devuelve el JSON parseado
+            conceptos = lic.conceptos_tic if isinstance(lic.conceptos_tic, list) else []
             for concepto in conceptos:
                 licitaciones_por_concepto[concepto] = licitaciones_por_concepto.get(concepto, 0) + 1
         except:
@@ -232,7 +225,8 @@ def get_estadisticas(
     
     for lic in stack_lics:
         try:
-            stack = json.loads(lic.stack_tecnologico)
+            # SQLAlchemy ya devuelve el JSON parseado
+            stack = lic.stack_tecnologico if isinstance(lic.stack_tecnologico, dict) else {}
             for categoria, tecnologias in stack.items():
                 for tech in tecnologias:
                     tecnologias_count[tech] = tecnologias_count.get(tech, 0) + 1
