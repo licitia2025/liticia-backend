@@ -115,7 +115,7 @@ class EstadisticasResponse(BaseModel):
     licitaciones_por_estado: Dict[str, int]
     licitaciones_por_tipo: Dict[str, int]
     licitaciones_por_concepto: Dict[str, int]
-    top_tecnologias: List[Dict[str, int]]
+    top_tecnologias: List[Dict[str, Any]]
     evolucion_mensual: List[Dict[str, Any]]
 
 
