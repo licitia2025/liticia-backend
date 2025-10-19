@@ -67,7 +67,7 @@ def main():
                     )
                     
                     # Actualizar licitación con resultados de IA
-                    licitacion.titulo_adaptado = resultado.get("titulo_adaptado")
+                    # licitacion.titulo_adaptado = resultado.get("titulo_adaptado")  # TEMPORALMENTE DESHABILITADO
                     licitacion.conceptos_tic = resultado.get("conceptos_tic", [])
                     licitacion.stack_tecnologico = resultado.get("stack_tecnologico", {})
                     licitacion.resumen_tecnico = resultado.get("resumen_tecnico", {})

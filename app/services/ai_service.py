@@ -300,8 +300,8 @@ NO incluyas explicaciones, SOLO el JSON."""
         """
         logger.info(f"Iniciando análisis completo de licitación: {titulo[:50]}...")
         
-        # Generar título adaptado
-        titulo_adaptado = self.generar_titulo_adaptado(titulo)
+        # Generar título adaptado - TEMPORALMENTE DESHABILITADO
+        # titulo_adaptado = self.generar_titulo_adaptado(titulo)
         
         # Identificar stack tecnológico
         stack = self.identificar_stack_tecnologico(titulo, descripcion, texto_pliego)
@@ -312,12 +312,12 @@ NO incluyas explicaciones, SOLO el JSON."""
         # Generar resumen técnico
         resumen = self.generar_resumen_tecnico(titulo, descripcion, texto_pliego)
         
-        if not stack and not conceptos and not resumen and not titulo_adaptado:
+        if not stack and not conceptos and not resumen:  # and not titulo_adaptado - TEMPORALMENTE DESHABILITADO
             logger.error("No se pudo completar ningún análisis")
             return None
         
         resultado = {
-            'titulo_adaptado': titulo_adaptado,
+            # 'titulo_adaptado': titulo_adaptado,  # TEMPORALMENTE DESHABILITADO
             'stack_tecnologico': stack or {},
             'conceptos_tic': conceptos or [],
             'resumen_tecnico': resumen or {},
