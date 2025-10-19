@@ -32,10 +32,23 @@ class LicitacionUpdate(BaseModel):
     presupuesto_base: Optional[float] = None
 
 
+class DocumentoSchema(BaseModel):
+    """Schema para documento adjunto"""
+    id: int
+    nombre: str
+    tipo: Optional[str] = None
+    url_descarga: Optional[str] = None
+    tamano_bytes: Optional[int] = None
+    
+    class Config:
+        from_attributes = True
+
+
 class LicitacionListItem(BaseModel):
     """Schema para item en lista de licitaciones"""
     id: int
     titulo: str
+    titulo_adaptado: Optional[str] = None
     expediente: Optional[str] = None
     estado: Optional[str] = None
     organo_contratacion: Optional[str] = None
@@ -56,6 +69,7 @@ class LicitacionDetail(LicitacionListItem):
     id_licitacion: str
     link: Optional[str] = None
     resumen: Optional[str] = None
+    documentos: Optional[List[DocumentoSchema]] = []
     nif_organo: Optional[str] = None
     web_organo: Optional[str] = None
     email_organo: Optional[str] = None

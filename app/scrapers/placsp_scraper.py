@@ -180,6 +180,56 @@ class PLACSPScraper:
                 nuts_match = re.search(r'<cbc:CountrySubentityCode[^>]*>([^<]+)</cbc:CountrySubentityCode>', xml_str)
                 if nuts_match:
                     data['codigo_nuts'] = nuts_match.group(1)
+                
+                # Extraer documentos adjuntos (PDFs)
+                documentos = []
+                
+                # Buscar LegalDocumentReference (Pliego de Cláusulas Administrativas)
+                legal_docs = re.findall(
+                    r'<cac:LegalDocumentReference>.*?<cbc:ID>([^<]+)</cbc:ID>.*?<cbc:URI>([^<]+)</cbc:URI>.*?</cac:LegalDocumentReference>',
+                    xml_str,
+                    re.DOTALL
+                )
+                for nombre, url in legal_docs:
+                    # Decodificar entidades HTML
+                    url = url.replace('&amp;', '&')
+                    documentos.append({
+                        'nombre': nombre,
+                        'tipo': 'pliego_administrativo',
+                        'url': url
+                    })
+                
+                # Buscar TechnicalDocumentReference (Pliego de Prescripciones Técnicas)
+                tech_docs = re.findall(
+                    r'<cac:TechnicalDocumentReference>.*?<cbc:ID>([^<]+)</cbc:ID>.*?<cbc:URI>([^<]+)</cbc:URI>.*?</cac:TechnicalDocumentReference>',
+                    xml_str,
+                    re.DOTALL
+                )
+                for nombre, url in tech_docs:
+                    url = url.replace('&amp;', '&')
+                    documentos.append({
+                        'nombre': nombre,
+                        'tipo': 'pliego_tecnico',
+                        'url': url
+                    })
+                
+                # Buscar AdditionalDocumentReference (Otros documentos)
+                additional_docs = re.findall(
+                    r'<cac:AdditionalDocumentReference>.*?<cbc:ID>([^<]+)</cbc:ID>.*?<cbc:URI>([^<]+)</cbc:URI>.*?</cac:AdditionalDocumentReference>',
+                    xml_str,
+                    re.DOTALL
+                )
+                for nombre, url in additional_docs:
+                    url = url.replace('&amp;', '&')
+                    documentos.append({
+                        'nombre': nombre,
+                        'tipo': 'anexo',
+                        'url': url
+                    })
+                
+                if documentos:
+                    data['documentos'] = documentos
+                    logger.debug(f"Encontrados {len(documentos)} documentos para licitación {data.get('titulo', '')[:50]}")
         
         except Exception as e:
             logger.warning(f"Error parseando XML de entrada: {e}")

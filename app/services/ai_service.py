@@ -300,6 +300,9 @@ NO incluyas explicaciones, SOLO el JSON."""
         """
         logger.info(f"Iniciando análisis completo de licitación: {titulo[:50]}...")
         
+        # Generar título adaptado
+        titulo_adaptado = self.generar_titulo_adaptado(titulo)
+        
         # Identificar stack tecnológico
         stack = self.identificar_stack_tecnologico(titulo, descripcion, texto_pliego)
         
@@ -309,11 +312,12 @@ NO incluyas explicaciones, SOLO el JSON."""
         # Generar resumen técnico
         resumen = self.generar_resumen_tecnico(titulo, descripcion, texto_pliego)
         
-        if not stack and not conceptos and not resumen:
+        if not stack and not conceptos and not resumen and not titulo_adaptado:
             logger.error("No se pudo completar ningún análisis")
             return None
         
         resultado = {
+            'titulo_adaptado': titulo_adaptado,
             'stack_tecnologico': stack or {},
             'conceptos_tic': conceptos or [],
             'resumen_tecnico': resumen or {},
@@ -323,6 +327,60 @@ NO incluyas explicaciones, SOLO el JSON."""
         logger.info(f"Análisis completo finalizado")
         
         return resultado
+    
+    def generar_titulo_adaptado(self, titulo_original: str) -> Optional[str]:
+        """
+        Genera un título más natural y conciso a partir del título original
+        
+        Args:
+            titulo_original: Título original de la licitación
+            
+        Returns:
+            Título adaptado o None si falla
+        """
+        system_prompt = """Eres un experto en redacción que adapta títulos de licitaciones públicas.
+
+Tu tarea es convertir títulos largos y burocráticos en títulos más naturales, concisos y fáciles de leer.
+
+Reglas:
+1. Máximo 80 caracteres
+2. Eliminar redundancias y jerga burocrática
+3. Mantener la información esencial: qué se contrata y para qué
+4. Usar lenguaje natural y directo
+5. NO incluir códigos, expedientes ni referencias administrativas
+6. Responder SOLO con el título adaptado, sin comillas ni explicaciones
+
+Ejemplos:
+
+Original: "Servicio de mantenimiento correctivo y evolutivo del sistema de información de gestión económica y presupuestaria del Ayuntamiento de Madrid para el ejercicio 2025"
+Adaptado: "Mantenimiento del sistema de gestión económica del Ayuntamiento de Madrid"
+
+Original: "Contrato de servicios para el desarrollo, implantación y mantenimiento de una plataforma digital de tramitación telemática basada en tecnologías cloud"
+Adaptado: "Desarrollo de plataforma digital de tramitación en la nube"
+
+Original: "Suministro e instalación de equipamiento informático y licencias de software para la modernización de la infraestructura TI"
+Adaptado: "Equipamiento informático y licencias para modernización TI"""
+        
+        user_prompt = f"Título original: {titulo_original}"
+        
+        cache_key = self._get_cache_key(titulo_original, "titulo_adaptado")
+        
+        response = self._call_openai(system_prompt, user_prompt, cache_key)
+        
+        if not response:
+            return None
+        
+        # Limpiar la respuesta (eliminar comillas si las hay)
+        titulo_adaptado = response.strip().strip('"').strip("'")
+        
+        # Validar longitud
+        if len(titulo_adaptado) > 100:
+            logger.warning(f"Título adaptado muy largo ({len(titulo_adaptado)} caracteres), truncando...")
+            titulo_adaptado = titulo_adaptado[:97] + "..."
+        
+        logger.info(f"Título adaptado generado: {titulo_adaptado}")
+        
+        return titulo_adaptado
     
     def clear_cache(self):
         """Limpia la caché de respuestas"""

@@ -57,9 +57,25 @@ class LicitacionService:
             import json
             licitacion_data['codigos_cpv'] = json.dumps(licitacion_data['codigos_cpv'])
         
+        # Extraer documentos antes de crear la licitación
+        documentos_data = licitacion_data.pop('documentos', [])
+        
         licitacion = Licitacion(**licitacion_data)
         self.db.add(licitacion)
         self.db.flush()
+        
+        # Crear documentos adjuntos si existen
+        if documentos_data:
+            from app.models.licitacion import Documento
+            for doc_data in documentos_data:
+                documento = Documento(
+                    licitacion_id=licitacion.id,
+                    nombre=doc_data.get('nombre'),
+                    tipo=doc_data.get('tipo'),
+                    url_descarga=doc_data.get('url')
+                )
+                self.db.add(documento)
+            logger.info(f"Guardados {len(documentos_data)} documentos para licitación {licitacion.expediente}")
         
         logger.info(f"Licitación creada: {licitacion.expediente}")
         
