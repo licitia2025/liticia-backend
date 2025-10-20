@@ -203,6 +203,61 @@ class PLACSPScraperV2:
                         data['importe_adjudicacion'] = float(award_amount)
                     except ValueError:
                         pass
+            
+            # DOCUMENTOS PDF
+            documentos = []
+            
+            # 1. Pliego de Cláusulas Administrativas (LegalDocumentReference)
+            legal_docs = cfs.findall('.//cac:LegalDocumentReference', ns)
+            for legal_doc in legal_docs:
+                nombre = self._get_text(legal_doc, './/cbc:ID', ns)
+                url = self._get_text(legal_doc, './/cbc:URI', ns)
+                
+                if url:
+                    documentos.append({
+                        'nombre': nombre if nombre else 'Pliego de Cláusulas Administrativas',
+                        'tipo': 'pliego_administrativo',
+                        'url': url
+                    })
+            
+            # 2. Pliego de Prescripciones Técnicas (TechnicalDocumentReference)
+            tech_docs = cfs.findall('.//cac:TechnicalDocumentReference', ns)
+            for tech_doc in tech_docs:
+                nombre = self._get_text(tech_doc, './/cbc:ID', ns)
+                url = self._get_text(tech_doc, './/cbc:URI', ns)
+                
+                if url:
+                    documentos.append({
+                        'nombre': nombre if nombre else 'Pliego de Prescripciones Técnicas',
+                        'tipo': 'pliego_tecnico',
+                        'url': url
+                    })
+            
+            # 3. Documentos Generales (GeneralDocument)
+            general_docs = cfs.findall('.//cac-place-ext:GeneralDocument//cac-place-ext:GeneralDocumentDocumentReference', ns)
+            for gen_doc in general_docs:
+                nombre = self._get_text(gen_doc, './/cbc:ID', ns)
+                url = self._get_text(gen_doc, './/cbc:URI', ns)
+                tipo_code = self._get_text(gen_doc, './/cbc:DocumentTypeCode', ns)
+                
+                if url:
+                    # Determinar tipo según código
+                    tipo_doc = 'anexo'
+                    if tipo_code:
+                        if tipo_code == '1':
+                            tipo_doc = 'pliego_tecnico'
+                        elif tipo_code == '2':
+                            tipo_doc = 'pliego_administrativo'
+                    
+                    documentos.append({
+                        'nombre': nombre if nombre else 'Documento Anexo',
+                        'tipo': tipo_doc,
+                        'url': url
+                    })
+            
+            if documentos:
+                data['documentos'] = documentos
+                logger.info(f"Encontrados {len(documentos)} documentos para: {data.get('titulo', '')[:50]}")
         
         return data
     

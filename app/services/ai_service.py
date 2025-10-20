@@ -151,13 +151,14 @@ NO incluyas explicaciones, SOLO el JSON."""
             logger.error(f"Error parseando respuesta JSON: {e}\nRespuesta: {response}")
             return None
     
-    def clasificar_conceptos_tic(self, titulo: str, descripcion: str) -> Optional[List[str]]:
+    def clasificar_conceptos_tic(self, titulo: str, descripcion: str, texto_pliego: Optional[str] = None) -> Optional[List[str]]:
         """
         Clasifica una licitación en conceptos TIC
         
         Args:
             titulo: Título de la licitación
             descripcion: Descripción breve
+            texto_pliego: Texto completo del pliego técnico (opcional)
             
         Returns:
             Lista de conceptos TIC identificados
@@ -195,7 +196,13 @@ Responde SOLO con un JSON válido con esta estructura:
 Selecciona entre 1 y 5 conceptos que mejor describan la licitación.
 NO incluyas explicaciones, SOLO el JSON."""
 
+        # Construir texto a analizar
         texto_analizar = f"Título: {titulo}\n\nDescripción: {descripcion}"
+        
+        if texto_pliego:
+            # Limitar el texto del pliego para no exceder límites de tokens
+            texto_pliego_limitado = texto_pliego[:15000]  # ~4000 tokens aprox
+            texto_analizar += f"\n\nPliego técnico:\n{texto_pliego_limitado}"
         
         cache_key = self._get_cache_key(texto_analizar, "conceptos")
         
@@ -307,7 +314,7 @@ NO incluyas explicaciones, SOLO el JSON."""
         stack = self.identificar_stack_tecnologico(titulo, descripcion, texto_pliego)
         
         # Clasificar conceptos
-        conceptos = self.clasificar_conceptos_tic(titulo, descripcion)
+        conceptos = self.clasificar_conceptos_tic(titulo, descripcion, texto_pliego)
         
         # Generar resumen técnico
         resumen = self.generar_resumen_tecnico(titulo, descripcion, texto_pliego)
