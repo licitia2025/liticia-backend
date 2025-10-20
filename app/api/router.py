@@ -2,7 +2,7 @@
 Router principal de la API
 """
 from fastapi import APIRouter
-from app.api.endpoints import licitaciones, health
+from app.api.endpoints import licitaciones, health, admin
 
 api_router = APIRouter()
 
@@ -18,5 +18,12 @@ api_router.include_router(
     licitaciones.router,
     prefix="/licitaciones",
     tags=["licitaciones"]
+)
+
+# Admin
+api_router.include_router(
+    admin.router,
+    prefix="/admin",
+    tags=["admin"]
 )
 
