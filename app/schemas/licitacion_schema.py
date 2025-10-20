@@ -48,7 +48,7 @@ class LicitacionListItem(BaseModel):
     """Schema para item en lista de licitaciones"""
     id: int
     titulo: str
-    # titulo_adaptado: Optional[str] = None  # TEMPORALMENTE DESHABILITADO
+    titulo_adaptado: Optional[str] = None
     expediente: Optional[str] = None
     estado: Optional[str] = None
     organo_contratacion: Optional[str] = None

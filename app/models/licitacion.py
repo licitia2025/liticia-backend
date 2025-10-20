@@ -35,7 +35,7 @@ class Licitacion(Base):
     id = Column(Integer, primary_key=True, index=True)
     id_licitacion = Column(String(255), nullable=False, unique=True)  # ID externo de la fuente
     titulo = Column(Text, nullable=False)
-    # titulo_adaptado = Column(Text, nullable=True)  # Título generado por IA más natural y conciso - TEMPORALMENTE DESHABILITADO
+    titulo_adaptado = Column(Text, nullable=True)  # Título generado por IA más natural y conciso
     expediente = Column(String(100), nullable=True)
     estado = Column(String(50), nullable=True, index=True)
     resumen = Column(Text, nullable=True)
