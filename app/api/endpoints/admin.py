@@ -4,7 +4,7 @@ Endpoints de administración para tareas de mantenimiento
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.database import get_db
+from app.core.database import get_db
 from app.models.licitacion import Licitacion
 from app.services.ai_service import AIService
 import time
