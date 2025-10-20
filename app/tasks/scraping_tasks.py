@@ -5,6 +5,7 @@ from celery import Task
 from app.core.celery_app import celery_app
 from app.core.database import SessionLocal
 from app.scrapers.placsp_scraper_v2 import PLACSPScraperV2
+from app.scrapers.gencat_scraper import GencatScraper
 from app.models.licitacion import Licitacion
 from app.services.licitacion_service import LicitacionService
 from app.services.pdf_service import PDFService
@@ -291,6 +292,130 @@ def cleanup_old_licitaciones(self, days: int = 365):
     
     finally:
         db.close()
+
+
+@celery_app.task(base=DatabaseTask, bind=True, name="app.tasks.scraping_tasks.scrape_gencat_recent")
+def scrape_gencat_recent(self, days: int = 1):
+    """
+    Scrape de licitaciones recientes de Gencat (Cataluña)
+    
+    Args:
+        days: Número de días hacia atrás para scrapear
+    """
+    logger.info(f"Iniciando scraping de Gencat de los últimos {days} días")
+    
+    db = SessionLocal()
+    self._db = db
+    
+    try:
+        scraper = GencatScraper()
+        licitacion_service = LicitacionService(db)
+        
+        # Scrape licitaciones recientes
+        fecha_desde = datetime.now() - timedelta(days=days)
+        licitaciones = list(scraper.scrape_all(
+            fecha_desde=fecha_desde,
+            max_results=1000,
+            filtrar_tic=True
+        ))
+        
+        # Guardar en base de datos
+        nuevas = 0
+        actualizadas = 0
+        
+        for lic_data in licitaciones:
+            try:
+                # Verificar si ya existe
+                existing = licitacion_service.get_by_id_licitacion(lic_data.get('id_licitacion'))
+                
+                if existing:
+                    # Actualizar si hay cambios
+                    updated = licitacion_service.update(existing.id, lic_data)
+                    if updated:
+                        actualizadas += 1
+                        logger.debug(f"Actualizada licitación Gencat: {lic_data.get('expediente')}")
+                else:
+                    # Crear nueva licitación
+                    nueva_lic = licitacion_service.create(lic_data)
+                    nuevas += 1
+                    logger.debug(f"Nueva licitación Gencat: {lic_data.get('expediente')}")
+                    
+                    # Nota: Gencat no proporciona URLs de documentos en el dataset principal
+                    # Los documentos se obtienen de la página de detalle si es necesario
+            
+            except Exception as e:
+                logger.error(f"Error procesando licitación Gencat {lic_data.get('expediente')}: {e}")
+                continue
+        
+        db.commit()
+        
+        result = {
+            'fuente': 'GENCAT',
+            'total_scraped': len(licitaciones),
+            'nuevas': nuevas,
+            'actualizadas': actualizadas,
+            'days': days,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        logger.info(f"Scraping Gencat completado: {nuevas} nuevas, {actualizadas} actualizadas de {len(licitaciones)} totales")
+        
+        return result
+    
+    except Exception as e:
+        logger.error(f"Error en scraping de Gencat: {e}")
+        db.rollback()
+        raise
+    
+    finally:
+        db.close()
+
+
+@celery_app.task(base=DatabaseTask, bind=True, name="app.tasks.scraping_tasks.scrape_all_sources")
+def scrape_all_sources(self, days: int = 1):
+    """
+    Scrape de todas las fuentes de licitaciones
+    
+    Args:
+        days: Número de días hacia atrás para scrapear
+    """
+    logger.info(f"Iniciando scraping de todas las fuentes de los últimos {days} días")
+    
+    results = []
+    
+    try:
+        # Scrape PLACSP
+        logger.info("Scraping PLACSP...")
+        result_placsp = scrape_placsp_recent(days=days)
+        results.append(result_placsp)
+        
+        # Scrape Gencat
+        logger.info("Scraping Gencat...")
+        result_gencat = scrape_gencat_recent(days=days)
+        results.append(result_gencat)
+        
+        # Resumen total
+        total_nuevas = sum(r.get('nuevas', 0) for r in results)
+        total_actualizadas = sum(r.get('actualizadas', 0) for r in results)
+        total_scraped = sum(r.get('total_scraped', 0) for r in results)
+        
+        result = {
+            'fuentes': ['PLACSP', 'GENCAT'],
+            'total_nuevas': total_nuevas,
+            'total_actualizadas': total_actualizadas,
+            'total_scraped': total_scraped,
+            'days': days,
+            'detalle': results,
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        logger.info(f"Scraping de todas las fuentes completado: {total_nuevas} nuevas, {total_actualizadas} actualizadas")
+        
+        return result
+    
+    except Exception as e:
+        logger.error(f"Error en scraping de todas las fuentes: {e}")
+        raise
 
 
 @celery_app.task(name="app.tasks.scraping_tasks.test_task")
