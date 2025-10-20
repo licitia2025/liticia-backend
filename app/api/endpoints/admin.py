@@ -47,7 +47,7 @@ async def generar_titulos_adaptados(db: Session = Depends(get_db)):
                 # Generar título adaptado
                 titulo_adaptado = ai_service.generar_titulo_adaptado(
                     licitacion.titulo,
-                    licitacion.descripcion
+                    licitacion.resumen
                 )
                 
                 # Actualizar en la base de datos
