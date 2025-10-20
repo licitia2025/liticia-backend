@@ -4,7 +4,7 @@ Servicio para gestionar licitaciones
 from sqlalchemy.orm import Session
 from app.models.licitacion import Licitacion
 from typing import List, Optional, Dict
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
 
 logger = logging.getLogger(__name__)
@@ -92,6 +92,47 @@ class LicitacionService:
     def get_by_expediente(self, expediente: str) -> Optional[Licitacion]:
         """Obtiene una licitación por su número de expediente"""
         return self.db.query(Licitacion).filter(Licitacion.expediente == expediente).first()
+    
+    def buscar_posibles_duplicados(
+        self,
+        titulo: str,
+        presupuesto: Optional[float],
+        fecha_publicacion: Optional[datetime],
+        dias_margen: int = 7
+    ) -> List[Licitacion]:
+        """
+        Busca licitaciones que puedan ser duplicadas basándose en similitud
+        
+        Args:
+            titulo: Título de la licitación
+            presupuesto: Presupuesto de la licitación
+            fecha_publicacion: Fecha de publicación
+            dias_margen: Margen de días para buscar licitaciones similares
+        
+        Returns:
+            Lista de licitaciones potencialmente duplicadas
+        """
+        query = self.db.query(Licitacion)
+        
+        # Filtrar por fecha (± días_margen)
+        if fecha_publicacion:
+            fecha_desde = fecha_publicacion - timedelta(days=dias_margen)
+            fecha_hasta = fecha_publicacion + timedelta(days=dias_margen)
+            query = query.filter(
+                Licitacion.fecha_actualizacion >= fecha_desde,
+                Licitacion.fecha_actualizacion <= fecha_hasta
+            )
+        
+        # Filtrar por presupuesto similar (±10%)
+        if presupuesto and presupuesto > 0:
+            presupuesto_min = presupuesto * 0.9
+            presupuesto_max = presupuesto * 1.1
+            query = query.filter(
+                Licitacion.presupuesto_base >= presupuesto_min,
+                Licitacion.presupuesto_base <= presupuesto_max
+            )
+        
+        return query.all()
     
     def update(self, licitacion_id: int, licitacion_data: Dict) -> bool:
         """

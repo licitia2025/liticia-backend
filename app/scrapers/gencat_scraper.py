@@ -4,7 +4,7 @@ Utiliza SODA API (Socrata Open Data API)
 """
 import requests
 from datetime import datetime, timedelta
-from typing import Generator, Dict, Any, Optional
+from typing import Generator, Dict, Any, Optional, List
 import logging
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,7 @@ class GencatScraper:
     """
     
     BASE_URL = "https://analisi.transparenciacatalunya.cat/resource/ybgg-dgi6.json"
+    JSON_API_BASE = "https://contractaciopublica.cat/portal-api/documents-publicacio/json-xifrat"
     
     # Códigos CPV relacionados con TIC
     CPV_TIC = [
@@ -137,6 +138,79 @@ class GencatScraper:
         
         return any(keyword.lower() in texto_completo for keyword in self.KEYWORDS_TIC)
     
+    def _extraer_documentos_desde_json(self, url_json: str) -> List[Dict[str, str]]:
+        """
+        Extrae los metadatos de documentos desde el JSON de la API
+        
+        Args:
+            url_json: URL del JSON cifrado de la licitación
+        
+        Returns:
+            Lista de diccionarios con información de documentos
+        """
+        if not url_json:
+            return []
+        
+        try:
+            response = self.session.get(url_json, timeout=30)
+            response.raise_for_status()
+            data = response.json()
+            
+            documentos = []
+            
+            # Extraer datos de publicación
+            publicacio = data.get('publicacio', {})
+            dades_publicacio = publicacio.get('dadesPublicacio', {})
+            
+            # Pliego Administrativo (PCAP)
+            pcap_docs = dades_publicacio.get('plecsDeClausulesAdministratives', {})
+            for idioma, docs in pcap_docs.items():
+                if docs and isinstance(docs, list):
+                    for doc in docs:
+                        documentos.append({
+                            'nombre': doc.get('titol', ''),
+                            'tipo': 'Pliego Administrativo',
+                            'url_descarga': '',  # Se descargará con browser automation
+                            'path_cifrado': doc.get('path', ''),
+                            'tamano': doc.get('mida', 0),
+                            'idioma': idioma
+                        })
+            
+            # Pliego Técnico (PPT)
+            ppt_docs = dades_publicacio.get('plecsDePrescripcionsTecniques', {})
+            for idioma, docs in ppt_docs.items():
+                if docs and isinstance(docs, list):
+                    for doc in docs:
+                        documentos.append({
+                            'nombre': doc.get('titol', ''),
+                            'tipo': 'Pliego Técnico',
+                            'url_descarga': '',  # Se descargará con browser automation
+                            'path_cifrado': doc.get('path', ''),
+                            'tamano': doc.get('mida', 0),
+                            'idioma': idioma
+                        })
+            
+            # Otros documentos relevantes
+            otros_docs = dades_publicacio.get('altresDocuments', {})
+            for idioma, docs in otros_docs.items():
+                if docs and isinstance(docs, list):
+                    for doc in docs[:3]:  # Limitar a 3 documentos adicionales
+                        documentos.append({
+                            'nombre': doc.get('titol', ''),
+                            'tipo': 'Anexo',
+                            'url_descarga': '',
+                            'path_cifrado': doc.get('path', ''),
+                            'tamano': doc.get('mida', 0),
+                            'idioma': idioma
+                        })
+            
+            logger.debug(f"Encontrados {len(documentos)} documentos en JSON")
+            return documentos
+            
+        except Exception as e:
+            logger.error(f"Error extrayendo documentos del JSON {url_json}: {e}")
+            return []
+    
     def _mapear_a_modelo_liticia(self, licitacion: Dict[str, Any]) -> Dict[str, Any]:
         """
         Mapea los campos de Gencat al modelo de datos de Liticia
@@ -151,6 +225,10 @@ class GencatScraper:
         
         # Construir ID único
         id_licitacion = f"GENCAT-{expediente}"
+        
+        # Obtener URL del JSON para extraer documentos
+        url_json = licitacion.get('url_json_licitacio', {}).get('url', '')
+        documentos = self._extraer_documentos_desde_json(url_json) if url_json else []
         
         # Mapear campos
         return {
@@ -173,7 +251,7 @@ class GencatScraper:
             'ambito': licitacion.get('nom_ambit', ''),
             'nuts': licitacion.get('codi_nuts', ''),
             'duracion_contrato': licitacion.get('durada_contracte', ''),
-            'documentos': []  # Los documentos se procesarán por separado si es necesario
+            'documentos': documentos
         }
     
     def _mapear_estado(self, fase: str) -> str:

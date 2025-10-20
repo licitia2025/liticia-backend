@@ -10,6 +10,7 @@ from app.models.licitacion import Licitacion
 from app.services.licitacion_service import LicitacionService
 from app.services.pdf_service import PDFService
 from app.services.ai_service import AIService
+from app.services.duplicate_detection_service import DuplicateDetectionService
 from datetime import datetime, timedelta
 import logging
 
@@ -310,6 +311,7 @@ def scrape_gencat_recent(self, days: int = 1):
     try:
         scraper = GencatScraper()
         licitacion_service = LicitacionService(db)
+        duplicate_detector = DuplicateDetectionService()
         
         # Scrape licitaciones recientes
         fecha_desde = datetime.now() - timedelta(days=days)
@@ -322,10 +324,11 @@ def scrape_gencat_recent(self, days: int = 1):
         # Guardar en base de datos
         nuevas = 0
         actualizadas = 0
+        duplicadas_detectadas = 0
         
         for lic_data in licitaciones:
             try:
-                # Verificar si ya existe
+                # Verificar si ya existe por ID
                 existing = licitacion_service.get_by_id_licitacion(lic_data.get('id_licitacion'))
                 
                 if existing:
@@ -335,13 +338,37 @@ def scrape_gencat_recent(self, days: int = 1):
                         actualizadas += 1
                         logger.debug(f"Actualizada licitación Gencat: {lic_data.get('expediente')}")
                 else:
-                    # Crear nueva licitación
-                    nueva_lic = licitacion_service.create(lic_data)
-                    nuevas += 1
-                    logger.debug(f"Nueva licitación Gencat: {lic_data.get('expediente')}")
+                    # Buscar posibles duplicados de otras fuentes
+                    posibles_duplicados = licitacion_service.buscar_posibles_duplicados(
+                        titulo=lic_data.get('titulo', ''),
+                        presupuesto=lic_data.get('presupuesto_base'),
+                        fecha_publicacion=lic_data.get('fecha_publicacion'),
+                        dias_margen=7
+                    )
                     
-                    # Nota: Gencat no proporciona URLs de documentos en el dataset principal
-                    # Los documentos se obtienen de la página de detalle si es necesario
+                    es_duplicada = False
+                    for posible_dup in posibles_duplicados:
+                        # Convertir a dict para comparación
+                        dup_dict = {
+                            'id_licitacion': posible_dup.id_licitacion,
+                            'fuente': 'PLACSP',  # Asumimos que los existentes son de PLACSP
+                            'expediente': posible_dup.expediente,
+                            'titulo': posible_dup.titulo,
+                            'presupuesto_base': posible_dup.presupuesto_base,
+                            'fecha_publicacion': posible_dup.fecha_actualizacion
+                        }
+                        
+                        if duplicate_detector.son_duplicadas(lic_data, dup_dict):
+                            logger.info(f"Duplicado detectado: Gencat/{lic_data.get('expediente')} ya existe como {posible_dup.id_licitacion}")
+                            es_duplicada = True
+                            duplicadas_detectadas += 1
+                            break
+                    
+                    if not es_duplicada:
+                        # Crear nueva licitación
+                        nueva_lic = licitacion_service.create(lic_data)
+                        nuevas += 1
+                        logger.debug(f"Nueva licitación Gencat: {lic_data.get('expediente')}")
             
             except Exception as e:
                 logger.error(f"Error procesando licitación Gencat {lic_data.get('expediente')}: {e}")
@@ -354,6 +381,7 @@ def scrape_gencat_recent(self, days: int = 1):
             'total_scraped': len(licitaciones),
             'nuevas': nuevas,
             'actualizadas': actualizadas,
+            'duplicadas': duplicadas_detectadas,
             'days': days,
             'timestamp': datetime.now().isoformat()
         }
