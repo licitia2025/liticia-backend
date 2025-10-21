@@ -2,7 +2,7 @@
 """
 Script automático que ejecuta el scraper de todas las fuentes y analiza con IA las licitaciones nuevas.
 Se ejecuta mediante Cron Jobs en Render.
-Actualizado: 2025-10-21 - Instala dependencias antes de importar módulos
+Actualizado: 2025-10-21 - Instala dependencias con --break-system-packages para resolver PEP 668
 """
 
 # ============================================================================
@@ -21,11 +21,15 @@ try:
     import sqlalchemy
     print("✅ Dependencias ya instaladas")
 except ImportError:
-    print("📦 Instalando dependencias...")
+    print("📦 Instalando dependencias (puede tardar 30-60 segundos)...")
     try:
+        # Usar --break-system-packages para evitar error de PEP 668 en Python 3.11+
+        # Esto es necesario porque Render usa contenedores efímeros separados para build y ejecución
         subprocess.check_call([
             sys.executable, "-m", "pip", "install", 
-            "--no-cache-dir", "-q", "-r", "requirements.txt"
+            "--break-system-packages",  # Necesario para Python 3.11+ en Render
+            "--no-cache-dir", "-q", 
+            "-r", "requirements.txt"
         ])
         print("✅ Dependencias instaladas correctamente")
     except subprocess.CalledProcessError as e:
