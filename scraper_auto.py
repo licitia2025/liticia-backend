@@ -71,7 +71,7 @@ def main():
         logger.info("=" * 80)
         
         # Importar módulos necesarios
-        from app.core.database import SessionLocal
+        from app.core.database import get_session_local
         from app.scrapers.placsp_scraper_v2 import PLACSPScraperV2
         from app.scrapers.gencat_scraper import GencatScraper
         from app.services.licitacion_service import LicitacionService
@@ -79,6 +79,7 @@ def main():
         from app.services.ai_service import AIService
         
         # Obtener sesión de base de datos
+        SessionLocal = get_session_local()
         db = SessionLocal()
         
         try:
