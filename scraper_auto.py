@@ -2,23 +2,13 @@
 """
 Script automático que ejecuta el scraper de todas las fuentes y analiza con IA las licitaciones nuevas.
 Se ejecuta mediante Cron Jobs en Render.
-Actualizado: 2025-10-21 - Fix dependencies
+Actualizado: 2025-10-21 - Simplificado, las dependencias se instalan en run_scraper.sh
 """
 
 import os
 import sys
-import subprocess
 import logging
 from datetime import datetime, timedelta
-
-# Verificar e instalar dependencias si es necesario
-try:
-    import sqlalchemy
-except ImportError:
-    logger = logging.getLogger(__name__)
-    logger.warning("sqlalchemy no encontrado, instalando dependencias...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", "requirements.txt"])
-    logger.info("Dependencias instaladas correctamente")
 
 # Configurar logging
 logging.basicConfig(

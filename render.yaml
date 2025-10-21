@@ -30,7 +30,7 @@ services:
     plan: starter
     schedule: "*/30 9-14 * * 1-5"
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python3.11 scraper_auto.py"
+    startCommand: "bash run_scraper.sh"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -51,7 +51,7 @@ services:
     plan: starter
     schedule: "0 */2 * * 1-5"
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python3.11 scraper_auto.py"
+    startCommand: "bash run_scraper.sh"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
@@ -72,7 +72,7 @@ services:
     plan: starter
     schedule: "0 10,22 * * 0,6"
     buildCommand: "pip install -r requirements.txt"
-    startCommand: "python3.11 scraper_auto.py"
+    startCommand: "bash run_scraper.sh"
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.0
