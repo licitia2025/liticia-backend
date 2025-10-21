@@ -1,8 +1,9 @@
-#!/usr/bin/env python3.11
+#!/usr/bin/env python3
 """
 Script automático que ejecuta el scraper de todas las fuentes y analiza con IA las licitaciones nuevas.
 Se ejecuta mediante Cron Jobs en Render.
-"""
+Actualizado: 2025-10-21 - Fix dependencies
+""""""
 
 import os
 import sys
