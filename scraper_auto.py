@@ -2,7 +2,7 @@
 """
 Script automático que ejecuta el scraper de todas las fuentes y analiza con IA las licitaciones nuevas.
 Se ejecuta mediante Cron Jobs en Render.
-Actualizado: 2025-10-21 - Instala dependencias con --break-system-packages para resolver PEP 668
+Actualizado: 2025-10-21 - Agregar directorio local de pip al PYTHONPATH
 """
 
 # ============================================================================
@@ -11,6 +11,7 @@ Actualizado: 2025-10-21 - Instala dependencias con --break-system-packages para 
 import subprocess
 import sys
 import os
+import site
 
 print("=" * 80)
 print("LITICIA - Verificando e instalando dependencias")
@@ -32,6 +33,15 @@ except ImportError:
             "-r", "requirements.txt"
         ])
         print("✅ Dependencias instaladas correctamente")
+        
+        # CRÍTICO: Agregar el directorio de instalación local al sys.path
+        # pip install --break-system-packages instala en ~/.local/lib/pythonX.Y/site-packages
+        # pero Python no lo busca ahí por defecto
+        user_site = site.getusersitepackages()
+        if user_site not in sys.path:
+            sys.path.insert(0, user_site)
+            print(f"✅ Agregado {user_site} al PYTHONPATH")
+        
     except subprocess.CalledProcessError as e:
         print(f"❌ Error instalando dependencias: {e}")
         sys.exit(1)
