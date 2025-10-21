@@ -2,11 +2,41 @@
 """
 Script automático que ejecuta el scraper de todas las fuentes y analiza con IA las licitaciones nuevas.
 Se ejecuta mediante Cron Jobs en Render.
-Actualizado: 2025-10-21 - Simplificado, las dependencias se instalan en run_scraper.sh
+Actualizado: 2025-10-21 - Instala dependencias antes de importar módulos
 """
 
-import os
+# ============================================================================
+# PASO 1: Instalar dependencias ANTES de importar cualquier módulo externo
+# ============================================================================
+import subprocess
 import sys
+import os
+
+print("=" * 80)
+print("LITICIA - Verificando e instalando dependencias")
+print("=" * 80)
+
+try:
+    # Intentar importar sqlalchemy para verificar si las dependencias están instaladas
+    import sqlalchemy
+    print("✅ Dependencias ya instaladas")
+except ImportError:
+    print("📦 Instalando dependencias...")
+    try:
+        subprocess.check_call([
+            sys.executable, "-m", "pip", "install", 
+            "--no-cache-dir", "-q", "-r", "requirements.txt"
+        ])
+        print("✅ Dependencias instaladas correctamente")
+    except subprocess.CalledProcessError as e:
+        print(f"❌ Error instalando dependencias: {e}")
+        sys.exit(1)
+
+print()
+
+# ============================================================================
+# PASO 2: Ahora sí, importar módulos y ejecutar el scraper
+# ============================================================================
 import logging
 from datetime import datetime, timedelta
 
