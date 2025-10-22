@@ -4,6 +4,7 @@ Configuración de base de datos con SQLAlchemy.
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import NullPool
 from app.core.config import settings
 from typing import Generator
 
@@ -25,8 +26,8 @@ def get_engine():
         
         _engine = create_engine(
             db_url,
-            pool_size=settings.DATABASE_POOL_SIZE,
-            max_overflow=settings.DATABASE_MAX_OVERFLOW,
+            poolclass=NullPool,  # O reducir pool_size de 10 a 3-5
+            pool_recycle=300,    # Reciclar conexiones cada 5 min
             pool_pre_ping=True,  # Verificar conexiones antes de usarlas
             echo=False,  # Cambiar a True para debug de queries
         )
