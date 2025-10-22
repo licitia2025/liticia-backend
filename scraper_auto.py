@@ -27,7 +27,7 @@ except ImportError:
         # Usar --break-system-packages para evitar error de PEP 668 en Python 3.11+
         # Esto es necesario porque Render usa contenedores efímeros separados para build y ejecución
         subprocess.check_call([
-            sys.executable, "-m", "pip", "install", 
+            sys.executable, "-m", "pip", 
             "--break-system-packages",  # Necesario para Python 3.11+ en Render
             "--no-cache-dir", "-q", 
             "-r", "requirements.txt"
@@ -57,7 +57,7 @@ from datetime import datetime, timedelta
 # Configurar logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -108,9 +108,10 @@ def main():
             logger.info(f"✓ PLACSP: {len(licitaciones_placsp)} licitaciones encontradas")
             
             # Procesar licitaciones de PLACSP
-            for lic_data in licitaciones_placsp:
+            for lic_data_raw in licitaciones_placsp:
+                lic_data = lic_data_raw.dict() if hasattr(lic_data_raw, 'dict') else lic_data_raw
                 try:
-                    existing = licitacion_service.get_by_id_licitacion(lic_data.get('id_licitacion'))
+                    existing = licitacion_service.get_by_id_licitacion(lic_data.get("id_licitacion"))
                     
                     if existing:
                         updated = licitacion_service.update(existing.id, lic_data)
@@ -121,7 +122,7 @@ def main():
                         total_nuevas += 1
                         
                         # Procesar PDFs y analizar con IA
-                        documentos = lic_data.get('documentos', [])
+                        documentos = lic_data.get("documentos", [])
                         if documentos:
                             try:
                                 docs_texto = pdf_service.procesar_documentos_licitacion(
@@ -129,31 +130,31 @@ def main():
                                     max_docs=2
                                 )
                                 
-                                texto_pliego = docs_texto.get('pliego_tecnico') or docs_texto.get('pliego_administrativo')
+                                texto_pliego = docs_texto.get("pliego_tecnico") or docs_texto.get("pliego_administrativo")
                                 
                                 if texto_pliego:
                                     logger.info(f"  Analizando con IA: {nueva_lic.expediente}")
                                     
                                     analisis = ai_service.analizar_licitacion_completa(
-                                        titulo=nueva_lic.titulo or '',
-                                        descripcion=nueva_lic.resumen or '',
+                                        titulo=nueva_lic.titulo or ''',
+                                        descripcion=nueva_lic.resumen or ''',
                                         texto_pliego=texto_pliego
                                     )
                                     
                                     if analisis:
                                         import json
                                         
-                                        if analisis.get('titulo_adaptado'):
-                                            nueva_lic.titulo_adaptado = analisis['titulo_adaptado']
+                                        if analisis.get("titulo_adaptado"):
+                                            nueva_lic.titulo_adaptado = analisis["titulo_adaptado"]
                                         
-                                        if analisis.get('stack_tecnologico'):
-                                            nueva_lic.stack_tecnologico = json.dumps(analisis['stack_tecnologico'])
+                                        if analisis.get("stack_tecnologico"):
+                                            nueva_lic.stack_tecnologico = json.dumps(analisis["stack_tecnologico"])
                                         
-                                        if analisis.get('conceptos_tic'):
-                                            nueva_lic.conceptos_tic = json.dumps(analisis['conceptos_tic'])
+                                        if analisis.get("conceptos_tic"):
+                                            nueva_lic.conceptos_tic = json.dumps(analisis["conceptos_tic"])
                                         
-                                        if analisis.get('resumen_tecnico'):
-                                            nueva_lic.resumen_tecnico = json.dumps(analisis['resumen_tecnico'])
+                                        if analisis.get("resumen_tecnico"):
+                                            nueva_lic.resumen_tecnico = json.dumps(analisis["resumen_tecnico"])
                                         
                                         nueva_lic.analizado_ia = True
                                         nueva_lic.fecha_analisis_ia = datetime.now()
@@ -164,7 +165,7 @@ def main():
                                 logger.error(f"  Error procesando PDFs/IA: {e}")
                 
                 except Exception as e:
-                    logger.error(f"Error procesando licitación PLACSP {lic_data.get('expediente')}: {e}")
+                    logger.error(f"Error procesando licitación PLACSP {lic_data.get('id_licitacion')}: {e}")
                     continue
             
             db.commit()
@@ -192,9 +193,10 @@ def main():
             actualizadas_gencat = 0
             
             # Procesar licitaciones de Gencat
-            for lic_data in licitaciones_gencat:
+            for lic_data_raw in licitaciones_gencat:
+                lic_data = lic_data_raw.dict() if hasattr(lic_data_raw, 'dict') else lic_data_raw
                 try:
-                    existing = licitacion_service.get_by_id_licitacion(lic_data.get('id_licitacion'))
+                    existing = licitacion_service.get_by_id_licitacion(lic_data.get("id_licitacion"))
                     
                     if existing:
                         updated = licitacion_service.update(existing.id, lic_data)
@@ -211,24 +213,24 @@ def main():
                             logger.info(f"  Analizando con IA: {nueva_lic.expediente}")
                             
                             analisis = ai_service.analizar_licitacion_completa(
-                                titulo=nueva_lic.titulo or '',
-                                descripcion=nueva_lic.resumen or ''
+                                titulo=nueva_lic.titulo or ''',
+                                descripcion=nueva_lic.resumen or '''
                             )
                             
                             if analisis:
                                 import json
                                 
-                                if analisis.get('titulo_adaptado'):
-                                    nueva_lic.titulo_adaptado = analisis['titulo_adaptado']
+                                if analisis.get("titulo_adaptado"):
+                                    nueva_lic.titulo_adaptado = analisis["titulo_adaptado"]
                                 
-                                if analisis.get('stack_tecnologico'):
-                                    nueva_lic.stack_tecnologico = json.dumps(analisis['stack_tecnologico'])
+                                if analisis.get("stack_tecnologico"):
+                                    nueva_lic.stack_tecnologico = json.dumps(analisis["stack_tecnologico"])
                                 
-                                if analisis.get('conceptos_tic'):
-                                    nueva_lic.conceptos_tic = json.dumps(analisis['conceptos_tic'])
+                                if analisis.get("conceptos_tic"):
+                                    nueva_lic.conceptos_tic = json.dumps(analisis["conceptos_tic"])
                                 
-                                if analisis.get('resumen_tecnico'):
-                                    nueva_lic.resumen_tecnico = json.dumps(analisis['resumen_tecnico'])
+                                if analisis.get("resumen_tecnico"):
+                                    nueva_lic.resumen_tecnico = json.dumps(analisis["resumen_tecnico"])
                                 
                                 nueva_lic.analizado_ia = True
                                 nueva_lic.fecha_analisis_ia = datetime.now()
@@ -239,7 +241,7 @@ def main():
                             logger.error(f"  Error analizando con IA: {e}")
                 
                 except Exception as e:
-                    logger.error(f"Error procesando licitación Gencat {lic_data.get('expediente')}: {e}")
+                    logger.error(f"Error procesando licitación Gencat {lic_data.get('id_licitacion')}: {e}")
                     continue
             
             db.commit()
@@ -269,5 +271,6 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
+    main()
     main()
 
